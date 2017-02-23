@@ -26,3 +26,22 @@ touch: cannot touch 'aaa': Read-only file system
 touch: cannot touch '/tmp/aaa': Read-only file system                                                                                        
 [root@xps13 sudoro]# su
 su: cannot set groups: Operation not permitted
+```
+
+"FAQ"
+-----
+
+- Does this drop capabilities?
+Yes, except for `CAP_DAC_READ_SEARCH`, `CAP_NET_RAW`.
+
+- Does it keep uid 0/ root?
+Yes.
+
+- Does it use namespaces ("container?!")?
+Yes. mount, ipc, pid, uts, cgroup are unshared.
+
+- Does it use seccomp ("sandbox?!")?
+Yes, it use seccomp to protect against some additional things.
+
+- Can I put this on a guest shell ssh-accessible to the internet and nothing bad will happen?
+Absolu..err. That seems like a terrible idea, but I'd like to see how many stupid things I forgot that would let you in, so please go ahead, let me know how that goes! ;-)
