@@ -45,3 +45,6 @@ Yes, it use seccomp to protect against some additional things.
 
 - Can I put this on a guest shell ssh-accessible to the internet and nothing bad will happen?
 Absolu..err. That seems like a terrible idea, but I'd like to see how many stupid things I forgot that would let you in, so please go ahead, let me know how that goes! ;-)
+
+- Did :atoll give you this idea?
+Yes!
