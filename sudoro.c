@@ -35,8 +35,8 @@ sudo chmod ug+s sudoro
 [root@xps13 sudoro]# touch aaa /tmp/aaa
 touch: cannot touch 'aaa': Read-only file system
 touch: cannot touch '/tmp/aaa': Read-only file system
-[root@xps13 sudoro]# tcpdump
-Bad system call
+[root@xps13 sudoro]# su
+su: cannot set groups: Operation not permitted
 */
 
 #define _GNU_SOURCE
