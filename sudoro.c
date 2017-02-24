@@ -47,6 +47,7 @@ su: cannot set groups: Operation not permitted
 /* Old sched.h */
 #ifndef CLONE_NEWCGROUP
 #define UNSHARE_FLAGS CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|CLONE_NEWPID
+#define OLD_SYSTEM 1
 #else
 #define UNSHARE_FLAGS CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|CLONE_NEWPID|CLONE_NEWCGROUP
 #endif
@@ -150,7 +151,9 @@ int install_seccomp_filter(void)
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(delete_module), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(finit_module), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(init_module), 0);
+#ifndef OLD_SYSTEM
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(seccomp), 0);
+#endif
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_load), 0);

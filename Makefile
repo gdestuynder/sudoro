@@ -18,9 +18,13 @@ build: bin
 deb: build
 	fpm -s dir -t deb -v1.0 -n sudoro --after-install post-install.sh -C build
 
+rpm: build
+	fpm -s dir -t rpm -v1.0 -n sudoro --after-install post-install.sh -C build
+
 flags:
 	sudo chown root:root sudoro
 	sudo chmod ug+s sudoro
+	sudo chmod a+x sudoro
 
 clean:
 	-rm sudoro.o
