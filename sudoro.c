@@ -43,7 +43,17 @@ su: cannot set groups: Operation not permitted
 #define SHELL "/bin/bash"
 #define PATH_PROC_MOUNTINFO "/proc/self/mountinfo"
 #define MOUNT_FLAGS MS_REC|MS_PRIVATE|MS_RDONLY|MS_BIND|MS_NOSUID|MS_REMOUNT
+
+/* Old sched.h */
+#ifndef CLONE_NEWCGROUP
+#define UNSHARE_FLAGS CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|CLONE_NEWPID
+#else
 #define UNSHARE_FLAGS CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|CLONE_NEWPID|CLONE_NEWCGROUP
+#endif
+
+#if LIBMOUNT_MAJOR_VERSION <= 2 && LIBMOUNT_MINOR_VERSION <= 29 && LIBMOUNT_PATCH_VERSION < 273
+#define OLD_LIBMOUNT 1
+#endif
 
 #include <errno.h>
 #include <sched.h>
@@ -59,6 +69,7 @@ su: cannot set groups: Operation not permitted
 
 static struct libmnt_cache *tb_cache;
 
+#ifndef OLD_LIBMOUNT
 static int uniq_fs_target_cmp(
 		struct libmnt_table *tb __attribute__((__unused__)),
 		struct libmnt_fs *a,
@@ -66,6 +77,7 @@ static int uniq_fs_target_cmp(
 {
 	return !mnt_fs_match_target(a, mnt_fs_get_target(b), tb_cache);
 }
+#endif
 
 int remount_all_fs_ro(void)
 {
@@ -90,7 +102,9 @@ int remount_all_fs_ro(void)
 	}
 
 	mnt_table_set_cache(tb, tb_cache);
+#ifndef OLD_LIBMOUNT
 	mnt_table_uniq_fs(tb, MNT_UNIQ_KEEPTREE, uniq_fs_target_cmp);
+#endif
 	itr = mnt_new_iter(MNT_ITER_FORWARD);
 	if (mnt_table_get_root_fs(tb, &fs) != 0)
 		return errno;
@@ -103,7 +117,9 @@ int remount_all_fs_ro(void)
 		}
 	}
 	mnt_free_iter(itr);
+#ifndef OLD_LIBMOUNT
 	mnt_unref_table(tb);
+#endif
 	return 0;
 }
 
@@ -228,7 +244,7 @@ int main(int argc, char **argv, char **envp)
 			return errno;
 		}
 		envp = 0;
-		execve(SHELL, NULL, envp);
+		execve(SHELL, argv, envp);
 		return errno;
 	} else {
 		waitpid(child, &status, 0);
