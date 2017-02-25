@@ -220,9 +220,10 @@ int shell_exec(int argc, char *argv[])
 		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
 		NULL};
 	char *margv[argc];
+	int i;
 
 	if (argc > 1) {
-		for (int i=1;i<argc;i++) {
+		for (i=1;i<argc;i++) {
 			margv[i-1] = argv[i];
 		}
 		margv[argc-1] = NULL;
