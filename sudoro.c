@@ -47,7 +47,6 @@ su: cannot set groups: Operation not permitted
 /* Old sched.h */
 #ifndef CLONE_NEWCGROUP
 #define UNSHARE_FLAGS CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|CLONE_NEWPID
-#define OLD_SYSTEM 1
 #else
 #define UNSHARE_FLAGS CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|CLONE_NEWPID|CLONE_NEWCGROUP
 #endif
@@ -67,6 +66,8 @@ su: cannot set groups: Operation not permitted
 #include <sys/prctl.h>
 #include <sys/capability.h>
 #include <seccomp.h>
+/* Include recent syscalls */
+#include "asm/unistd.h"
 
 static struct libmnt_cache *tb_cache;
 
@@ -153,9 +154,7 @@ int install_seccomp_filter(void)
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(delete_module), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(finit_module), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(init_module), 0);
-#ifndef OLD_SYSTEM
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(seccomp), 0);
-#endif
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_load), 0);
@@ -167,7 +166,6 @@ int install_seccomp_filter(void)
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioperm), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(iopl), 0);
-	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 0);
 
 	/* Also required for drop_caps */
 	prctl(PR_SET_NO_NEW_PRIVS, 1);
