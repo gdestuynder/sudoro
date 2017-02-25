@@ -66,6 +66,11 @@ su: cannot set groups: Operation not permitted
 #include <sys/prctl.h>
 #include <sys/capability.h>
 #include <seccomp.h>
+#include <grp.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <syslog.h>
+
 #include "syscalls.h"
 
 static struct libmnt_cache *tb_cache;
@@ -134,15 +139,6 @@ int install_seccomp_filter(void)
 
 	/* Yes, it's a blacklist - most operations need to be performed/allowed
 	 * in this case,so we just forbid potentially bad stuff */
-#if 0
-	/* These break ping'n stuff obviously so while it'd be nice to
-	 * blacklist, that's not a very useful thing to do */
-	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setuid), 0);
-	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setuid32), 0);
-	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(capset), 0);
-	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(prctl), 0);
-#endif
-
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syscall), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
@@ -165,6 +161,11 @@ int install_seccomp_filter(void)
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioperm), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(iopl), 0);
+	/* If you speak to unix sockets such as dbus, you can escape easily */
+	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sendmsg), 0);
+	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(send), 0);
+	/* disallow write fd > stderr */
+	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(write), 1, SCMP_A0(SCMP_CMP_GT, 2));
 
 	/* Also required for drop_caps */
 	prctl(PR_SET_NO_NEW_PRIVS, 1);
@@ -204,16 +205,86 @@ int drop_caps(void)
 
 }
 
-int main(int argc, char **argv, char **envp)
+void usage(char *argv[])
+{
+	printf("USAGE %s [EXECUTABLE]\n", argv[0]);
+	printf("\nThis program executes a binary with limited privileges, akin to a 'read-only' root-user.\n\
+Since this allow for exfiltration of any data on the file-system, this program is not meant\
+as a secure container (though it attempts to forcefully deny all dangerous operations).\n");
+}
+
+int shell_exec(int argc, char *argv[])
+{
+	/* Some basic defaults */
+	char *menvp[] = {"TERM=xterm-256color",
+		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
+		NULL};
+	char *margv[argc];
+
+	if (argc > 1) {
+		for (int i=1;i<argc;i++) {
+			margv[i-1] = argv[i];
+		}
+		margv[argc-1] = NULL;
+	} else {
+		margv[0] = SHELL;
+		margv[1] = NULL;
+	}
+
+	if (access(margv[0], X_OK)) {
+		printf("Cannot execute binary file: %s\n\n", margv[0]);
+		usage(argv);
+		return 1;
+	}
+	return execve(margv[0], margv, menvp);
+}
+
+int check_permissions(char *argv[])
+{
+	struct stat sb;
+	gid_t *group;
+	long i, gnr;
+	long ngroups_max;
+
+	if (stat(argv[0], &sb) == -1) {
+		perror("stat");
+		return errno;
+	}
+
+	if (sb.st_gid == getgid()) {
+		return 0;
+	}
+
+	ngroups_max = sysconf(_SC_NGROUPS_MAX) + 1;
+	group = (gid_t *)malloc(ngroups_max *sizeof(gid_t));
+	gnr = getgroups(ngroups_max, group);
+
+	for (i=0;i<gnr;i++) {
+		if (group[i] == sb.st_gid) {
+			return 0;
+		}
+	}
+	printf("You are not in the authorized execution group (%u). This incident will be reported.\n", sb.st_gid);
+	openlog("sudoro", LOG_PID, LOG_AUTH);
+	syslog(LOG_NOTICE, "Unauthorized sudoro execution by user id %u", getuid());
+	closelog();
+	return 1;
+}
+
+int main(int argc, char *argv[], char **envp)
 {
 	int status;
 
 	pid_t parent = getpid();
 	pid_t child;
 
+	/* Are you allowed to run this? */
+	if (check_permissions(argv)) exit(EXIT_FAILURE);
+
 	/* Get root */
 	if (setgid(getegid())) perror("setegid");
 	if (setuid(geteuid())) perror("seteuid");
+	if (setgroups(0, NULL)) perror("setgroups");
 
 	/* That's all it takes to enter namespaces */
 	if (-1 == unshare(UNSHARE_FLAGS)) {
@@ -253,11 +324,10 @@ int main(int argc, char **argv, char **envp)
 			perror("seccomp setup failed");
 			return errno;
 		}
-		envp = 0;
-		execve(SHELL, argv, envp);
-		return errno;
+
+		return shell_exec(argc, argv);
 	} else {
-		waitpid(child, &status, 0);
+		return waitpid(child, &status, 0);
 	}
 	return errno;
 }

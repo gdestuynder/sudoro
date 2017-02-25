@@ -22,9 +22,9 @@ rpm: build
 	fpm -s dir -t rpm -v1.0 -n sudoro --after-install post-install.sh -C build
 
 flags:
-	sudo chown root:root sudoro
-	sudo chmod ug+s sudoro
-	sudo chmod a+x sudoro
+	sudo chown root:wheel sudoro
+	sudo chmod u+s sudoro
+	sudo chmod ug+x sudoro
 
 clean:
 	-rm sudoro.o
