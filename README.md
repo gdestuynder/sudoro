@@ -1,31 +1,58 @@
 # sudoro
 A "read-only" sudo
 
-What is sudoro?                                                                                                                              
----------------                                                                                                                              
-sudoro is a setuid program that provides a "read-only" root-shell.                                                                           
-This means it won't be able modify the system state (in theory), for example,                                                                
-it won't be able to write files, kill processes, change hostname, etc.                                                                       
-                                                                                                                                             
-It is provided as a convenience tool for admins, to ensure they do                                                                           
-not shoot themselves in the foot while troubleshooting and is not tested                                                                     
-as a security tool (though if you test it, let me know how that goes!).                                                                      
-**TLDR: Use with caution!**                                                                                                                    
-                                                                                                                                             
-Example usage                                                                                                                                
--------------                                                                                                                                
+What is sudoro?
+---------------
+sudoro is a setuid program that provides a "read-only" root-shell.
+This means it won't be able modify the system state (in theory), for example,
+it won't be able to write files, kill processes, change hostname, etc.
+You *will* be able to read all files, and diagnose most things, and thus if 
+your sole access is via sudoro, you will be able to exfiltrate *any* data on 
+the system.
+
+It is provided as a convenience tool for admins, to ensure they do
+not shoot themselves in the foot while troubleshooting and is not tested
+as a security tool (though if you test it, let me know how that goes!).
+**TLDR: Use with caution!**
+
+Example usage
+-------------
 
 ```
-~/tmp/sudoro ⚡  make && ./sudoro                                                                                                             
-gcc sudoro.c -o sudoro -lmount                                                                                                               
-sudo chown root:root sudoro                                                                                                                  
-sudo chmod ug+s sudoro                                                                                                                       
-[root@xps13 sudoro]# kill -9 $BASHPID                                                                                                        
-[root@xps13 sudoro]# touch aaa /tmp/aaa                                                                                                      
-touch: cannot touch 'aaa': Read-only file system                                                                                             
-touch: cannot touch '/tmp/aaa': Read-only file system                                                                                        
+~/tmp/sudoro ⚡  make && ./sudoro
+gcc sudoro.c -o sudoro -lmount
+sudo chown root:wheel sudoro
+sudo chmod u+s sudoro
+sudo chmod g+x sudoro
+[root@xps13 sudoro]# kill -9 $BASHPID
+[root@xps13 sudoro]# touch aaa /tmp/aaa
+touch: cannot touch 'aaa': Read-only file system
+touch: cannot touch '/tmp/aaa': Read-only file system
 [root@xps13 sudoro]# su
 su: cannot set groups: Operation not permitted
+[root@xps13 sudoro]# reboot
+Failed to write to /dev/initctl: Operation not permitted
+Failed to talk to init daemon.
+```
+
+"Security" considerations
+-------------------------
+
+Sudoro will only allow users of the group it's set to - to execute itself. In 
+addition to that, sudoro only makes sense when the binary is marked with setuid
+ root. Example:
+
+```
+# chown root:wheel sudoro
+# chmod u+s sudoro
+# chmod ug+x sudoro
+# exit
+$ id
+uid=1000(kang)... groups=99(wheel)
+$ ./sudoro /bin/cat /etc/shadow
+root:x:17203::::::
+bin:x:14871::::::
+....
 ```
 
 "FAQ"
