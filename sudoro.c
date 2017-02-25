@@ -66,8 +66,7 @@ su: cannot set groups: Operation not permitted
 #include <sys/prctl.h>
 #include <sys/capability.h>
 #include <seccomp.h>
-/* Include recent syscalls */
-#include "asm/unistd.h"
+#include "syscalls.h"
 
 static struct libmnt_cache *tb_cache;
 
