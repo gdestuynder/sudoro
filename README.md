@@ -55,6 +55,12 @@ bin:x:14871::::::
 ....
 ```
 
+You can compile sudoro with ALLOW_TMP_WRITE=1 (default) which will allow writes 
+to /tmp so that programs don't complain too much. These are namespaced mounts
+so won't affect the host filesystem, but since it will no longer deny the
+write() systemcall, it is potentially not as safe.  Note that this will mask
+the host's /tmp directory.
+
 "FAQ"
 -----
 
@@ -71,7 +77,9 @@ Yes. mount, ipc, pid, uts, cgroup are unshared.
 Yes, it use seccomp to protect against some additional things.
 
 - Can I put this on a guest shell ssh-accessible to the internet and nothing bad will happen?
-Absolu..err. That seems like a terrible idea, but I'd like to see how many stupid things I forgot that would let you in, so please go ahead, let me know how that goes! ;-)
+Absolu..err. That seems like a terrible idea, but I'd like to see how many
+stupid things I forgot that would let you in, so please go ahead, let me know
+how that goes! ;-)
 
 - Did :atoll give you this idea?
 Yes!

@@ -43,6 +43,7 @@ su: cannot set groups: Operation not permitted
 #define SHELL "/bin/bash"
 #define PATH_PROC_MOUNTINFO "/proc/self/mountinfo"
 #define MOUNT_FLAGS MS_REC|MS_PRIVATE|MS_RDONLY|MS_BIND|MS_NOSUID|MS_REMOUNT
+#define MOUNT_FLAGS_RW MS_NOSUID|MS_NODEV|MS_NOATIME
 
 /* Old sched.h */
 #ifndef CLONE_NEWCGROUP
@@ -164,8 +165,10 @@ int install_seccomp_filter(void)
 	/* If you speak to unix sockets such as dbus, you can escape easily */
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sendmsg), 0);
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(send), 0);
+#ifndef ALLOW_TMP_WRITE
 	/* disallow write fd > stderr */
 	seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(write), 1, SCMP_A0(SCMP_CMP_GT, 2));
+#endif
 
 	/* Also required for drop_caps */
 	prctl(PR_SET_NO_NEW_PRIVS, 1);
@@ -313,6 +316,14 @@ int main(int argc, char *argv[], char **envp)
 			perror("remount all read-only failed");
 			return errno;
 		}
+
+#ifdef ALLOW_TMP_WRITE
+		/* Mount fresh/new tmp directories that are writable */
+		if (mount("none", "/tmp", "tmpfs", MOUNT_FLAGS_RW, NULL) != 0) {
+			perror("tmp mount read-write failed");
+			return errno;
+		}
+#endif
 
 		/* Drop all un-needed capabilities */
 		if (drop_caps() != 0) {
