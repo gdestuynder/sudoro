@@ -306,9 +306,11 @@ int main(int argc, char *argv[], char **envp)
 
 	if (child == 0) {
 		/* Ensure mount propagates to MS_PRIVATE|MS_REC so that the mount namespace
-		 * is really separated/we don't touch the host mount namespace */
-		if (mount("/", "/", NULL, MOUNT_FLAGS, NULL) != 0) {
-			perror("mount read-only failed");
+		 * is really separated/we don't touch the host mount namespace 
+		 * Remounting read-only needs to happen separately.
+		 */
+		if (mount("none", "/", NULL, MS_PRIVATE|MS_REC, NULL) != 0) {
+			perror("remount / and propagate private mount namespace failed");
 			return errno;
 		}
 		/* Remount everything read-only */
