@@ -2,7 +2,7 @@ CFLAGS	:= -pie -fPIE -D_FORTIFY_SOURCE=2 -fstack-protector -O2
 LDFLAGS := -Wl,-z,relro -Wl,-z,now $(shell pkg-config --libs libcap || echo '-lcap') $(shell pkg-config --libs mount) $(shell pkg-config --libs libseccomp)
 LIBTOOL	:= libtool
 INSTALL	:= install
-VERSION	:= 1.3
+VERSION	:= 1.4
 # Allow writing to a locally-mounted tmp partition, makes programs less annoying to use, though a little less safe
 ALLOW_TMP_WRITE := 1
 
