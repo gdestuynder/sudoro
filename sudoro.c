@@ -246,11 +246,21 @@ int shell_exec(int argc, char *argv[])
 int check_permissions(char *argv[])
 {
 	struct stat sb;
+	ssize_t rs, bs=15;
+	char link[bs+1];
+
 	gid_t *group;
 	long i, gnr;
 	long ngroups_max;
 
-	if (stat(argv[0], &sb) == -1) {
+	rs = readlink("/proc/self/exe", link, bs);
+	if (rs == -1 || rs > bs) {
+		perror("readlink");
+		return errno;
+	}
+	link[rs] = '\0';
+
+	if (stat(link, &sb) == -1) {
 		perror("stat");
 		return errno;
 	}
