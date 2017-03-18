@@ -221,25 +221,23 @@ int shell_exec(int argc, char *argv[])
 	/* Some basic defaults */
 	char *menvp[] = {"TERM=xterm-256color",
 		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
+		"HOME=/root", "USER=root",
+		"LD_PRELOAD=/usr/lib/libfakeroot/libfakeroot.so",
 		NULL};
-	char *margv[argc];
-	int i;
+	char *margv[argc+2];
+	int i,mi=0;
 
+	margv[mi++] = SHELL;
 	if (argc > 1) {
+		margv[mi++] = "-c";
 		for (i=1;i<argc;i++) {
-			margv[i-1] = argv[i];
+			margv[mi++] = argv[i];
 		}
-		margv[argc-1] = NULL;
+		margv[mi++] = NULL;
 	} else {
-		margv[0] = SHELL;
-		margv[1] = NULL;
+		margv[mi++] = NULL;
 	}
 
-	if (access(margv[0], X_OK)) {
-		printf("Cannot execute binary file: %s\n\n", margv[0]);
-		usage(argv);
-		return 1;
-	}
 	return execve(margv[0], margv, menvp);
 }
 
