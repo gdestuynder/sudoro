@@ -14,14 +14,14 @@ release: bin
 bin:
 	$(LIBTOOL) --mode=link gcc $(CFLAGS) $(LDFLAGS) -DALLOW_TMP_WRITE=$(ALLOW_TMP_WRITE) sudoro.c -o sudoro
 
-build: bin
+install: bin
 	$(INSTALL) -d build/usr/bin
 	$(INSTALL) sudoro build/usr/bin
 
-deb: build
+deb: install
 	fpm -s dir -t deb -v$(VERSION) -n sudoro --after-install post-install.sh -C build
 
-rpm: build
+rpm: install
 	fpm -s dir -t rpm -v$(VERSION) -n sudoro --after-install post-install.sh -C build
 
 flags:
@@ -35,4 +35,4 @@ clean:
 	-rm -f sudoro
 	-rm *deb
 
-.PHONY: clean build deb flags
+.PHONY: clean install deb flags
