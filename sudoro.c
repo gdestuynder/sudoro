@@ -71,6 +71,7 @@ su: cannot set groups: Operation not permitted
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <syslog.h>
+#include <linux/limits.h>
 
 #include "syscalls.h"
 
@@ -222,7 +223,8 @@ int shell_exec(int argc, char *argv[])
 	char *menvp[] = {"TERM=xterm-256color",
 		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
 		"HOME=/root", "USER=root",
-		"LD_PRELOAD=/usr/lib/libfakeroot/libfakeroot.so",
+		"LD_LIBRARY_PATH=/usr/lib/libfakeroot:/usr/lib64/libfakeroot",
+		"LD_PRELOAD=libfakeroot.so",
 		NULL};
 	char *margv[argc+2];
 	int i,mi=0;
@@ -244,8 +246,8 @@ int shell_exec(int argc, char *argv[])
 int check_permissions(char *argv[])
 {
 	struct stat sb;
-	ssize_t rs, bs=15;
-	char link[bs+1];
+	ssize_t rs, bs=PATH_MAX;
+	char link[bs];
 
 	gid_t *group;
 	long i, gnr;
